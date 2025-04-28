@@ -1,5 +1,6 @@
 import * as e from "three";
 import { MindARThree as t } from "transAR";
+
 export const i = [
     {
         id: 0,
@@ -66,6 +67,7 @@ let chromaKeyShader = {
         }
     `,
 };
+
 class ARScene {
     constructor() {
         (this.mindarThree = null),
@@ -167,6 +169,7 @@ class ARScene {
             this.renderer.render(this.scene, this.camera));
     }
 }
+
 class UIService {
     constructor() {
         (this.instructionCard = document.querySelector(".instruction-card")),
@@ -278,6 +281,7 @@ class UIService {
             }
     }
 }
+
 class RecordingService {
     constructor() {
         (this.mediaRecorder = null),
@@ -486,4 +490,66 @@ class RecordingService {
             (this.recordedChunks = []);
     }
 }
-export { ARScene, UIService, RecordingService };
+
+class App {
+    constructor() {
+        (this.arScene = new ARScene()),
+            (this.recordingService = new RecordingService()),
+            (this.uiService = new UIService()),
+            this.initialize();
+    }
+    initialize() {
+        this.bindEvents(), this.setActualHeight(), this.start();
+    }
+    setActualHeight() {
+        let e = document.querySelector(".full-screen-container"),
+            t = document.querySelector(".video-popup"),
+            i = document.querySelector(".ui_container"),
+            s = window.innerHeight;
+        e && (e.style.height = `${s}px`),
+            i && (i.style.height = `${s}px`),
+            t && (t.style.height = `${s}px`);
+    }
+    bindEvents() {
+        this.uiService.bindEvents(
+            () => this.onCloseInstructions(),
+            () => this.startRecording(),
+            () => this.stopRecording()
+        ),
+            window.addEventListener("resize", () => this.setActualHeight()),
+            window.addEventListener("orientationchange", () =>
+                this.setActualHeight()
+            );
+    }
+    async onCloseInstructions() {
+        this.arScene.startTracking(),
+            this.uiService.setRecordingButtonState(!0);
+    }
+    async startRecording() {
+        document.body.classList.add("recording"),
+            await this.recordingService.startRecording("ar_container"),
+            this.uiService.setRecordingState(!0);
+    }
+    stopRecording() {
+        document.body.classList.remove("recording"),
+            this.recordingService.stopRecording(),
+            this.uiService.setRecordingState(!1);
+    }
+    async start() {
+        this.uiService.showInstructions();
+        try {
+            await this.arScene.initialize(),
+                await this.arScene.start(),
+                this.uiService.showCloseButton();
+        } catch (e) {
+            console.error("Failed to initialize AR scene:", e);
+        }
+    }
+    stop() {
+        this.arScene.stop();
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    new App();
+});
